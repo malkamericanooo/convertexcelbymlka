@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { PatientData, ValidationResult, ColumnValidation, RowValidation, ProcessResult } from "../types";
 import { validateNIK, validateTanggalLahir, validateIMT, calculateIMT, isEmptyValue } from "./validators";
+import { sanitizeForExcel } from "./sanitizer";
 
 type RawValue = string | number | boolean | null;
 
@@ -270,21 +271,29 @@ export async function injectExtLst(templateBuffer: ArrayBuffer, outputBuffer: Ar
       if (!templateEntry || !outputEntry) continue;
 
       const templateXml = await templateEntry.async("string");
-      const outputXml = await outputEntry.async("string");
+      let outputXml = await outputEntry.async("string");
 
-      const extLstMatch = templateXml.match(/<extLst>[\s\S]*<\/extLst>/);
-      if (!extLstMatch) continue;
-
-      const extLst = extLstMatch[0];
-
-      let newXml: string;
-      if (outputXml.includes("<extLst>")) {
-        newXml = outputXml.replace(/<extLst>[\s\S]*<\/extLst>/, extLst);
-      } else {
-        newXml = outputXml.replace("</worksheet>", extLst + "</worksheet>");
+      // 1. Copy worksheet tag untuk mengimpor semua XML namespaces (seperti xmlns:x14)
+      // Ini WAJIB dilakukan agar tidak terjadi "XML parsing error" karena namespace x14 tidak dikenali.
+      const worksheetTagMatch = templateXml.match(/<worksheet[^>]*>/);
+      if (worksheetTagMatch) {
+        outputXml = outputXml.replace(/<worksheet[^>]*>/, worksheetTagMatch[0]);
       }
 
-      outputZip.file(sheetFile, newXml);
+      // 2. Ambil dan inject extLst (yang berisi data validation / dropdown modern)
+      const extLstMatch = templateXml.match(/<extLst>[\s\S]*<\/extLst>/);
+      if (extLstMatch) {
+        // Perpanjang range sqref (contoh A2:A10 menjadi A2:A10000) agar dropdown turun ke bawah
+        let extLst = extLstMatch[0].replace(/:([A-Z]+)\d+/g, ':$110000');
+
+        if (outputXml.includes("<extLst>")) {
+          outputXml = outputXml.replace(/<extLst>[\s\S]*<\/extLst>/, extLst);
+        } else {
+          outputXml = outputXml.replace("</worksheet>", extLst + "</worksheet>");
+        }
+      }
+
+      outputZip.file(sheetFile, outputXml);
     }
 
     return outputZip.generateAsync({ type: "arraybuffer", compression: "DEFLATE", compressionOptions: { level: 6 } });
@@ -350,8 +359,15 @@ export async function exportToTemplate(patients: PatientData[]): Promise<Blob> {
     const rawLen = patient.rawValues.length;
     for (let c = 1; c <= rawLen; c++) {
       const raw = patient.rawValues[c - 1];
+      const cell = row.getCell(c);
+      
       if (raw != null) {
-        row.getCell(c).value = raw as ExcelJS.CellValue;
+        // Terapkan fungsi sanitasi jika nilai adalah string
+        if (typeof raw === "string") {
+          cell.value = sanitizeForExcel(raw);
+        } else {
+          cell.value = raw as ExcelJS.CellValue;
+        }
       }
     }
 
