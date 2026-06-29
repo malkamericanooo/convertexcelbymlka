@@ -4,15 +4,38 @@ import { FileUpload } from "./components/FileUpload";
 import { PreviewTable } from "./components/PreviewTable";
 import { ValidationTable } from "./components/ValidationTable";
 import { NotificationModal } from "./components/NotificationModal";
-import { processFile, exportToTemplate } from "./utils/excelProcessor";
+import { readExcelFile, validatePatients, exportToTemplate } from "./utils/excelProcessor";
 import { PatientData, ProcessResult, AppStep, NotificationState } from "./types";
-import { FileSpreadsheet, Download, RefreshCw } from "lucide-react";
+import { FileSpreadsheet, Download, RefreshCw, Code } from "lucide-react";
+
+interface ProgressState {
+  pct: number;
+  label: string;
+}
+
+function ProgressBar({ pct, label }: ProgressState) {
+  return (
+    <div className="mt-4 space-y-1.5">
+      <div className="flex justify-between items-center text-xs text-gray-500">
+        <span className="font-medium text-blue-700">{label}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+        <div
+          className="h-2.5 rounded-full bg-blue-600 transition-all duration-500 ease-out"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [step, setStep] = useState<AppStep>("upload");
   const [result, setResult] = useState<ProcessResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ProgressState>({ pct: 0, label: "" });
   const [notification, setNotification] = useState<NotificationState>({
     visible: false,
     totalEmpty: 0,
@@ -25,6 +48,7 @@ export default function App() {
     setError(null);
     setResult(null);
     setDownloadBlob(null);
+    setProgress({ pct: 0, label: "" });
   }, []);
 
   const handleProcess = async () => {
@@ -33,32 +57,50 @@ export default function App() {
     setError(null);
 
     try {
-      const processResult = await processFile(uploadedFile);
+      setProgress({ pct: 10, label: "Membaca file Excel..." });
+      const patients = await readExcelFile(uploadedFile);
+
+      setProgress({ pct: 55, label: "Memvalidasi data..." });
+      await new Promise((r) => setTimeout(r, 80));
+      const validation = validatePatients(patients);
+
+      setProgress({ pct: 80, label: "Selesai membaca & validasi" });
+      await new Promise((r) => setTimeout(r, 80));
+
+      const processResult: ProcessResult = { patients, validation };
       setResult(processResult);
 
-      const { totalEmpty, totalInvalid } = processResult.validation;
+      const { totalEmpty, totalInvalid } = validation;
       if (totalEmpty > 0 || totalInvalid > 0) {
         setStep("validated");
         setNotification({ visible: true, totalEmpty, totalInvalid });
+        setProgress({ pct: 80, label: "" });
       } else {
-        await runExport(processResult.patients);
+        await runExport(patients);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan saat memproses file.");
       setStep("upload");
+      setProgress({ pct: 0, label: "" });
     }
   };
 
   const runExport = async (patients: PatientData[]) => {
     setStep("exporting");
     setNotification((prev) => ({ ...prev, visible: false }));
+    setProgress({ pct: 85, label: "Memuat template warna..." });
+
     try {
+      await new Promise((r) => setTimeout(r, 100));
+      setProgress({ pct: 92, label: "Menulis data ke template..." });
       const blob = await exportToTemplate(patients);
+      setProgress({ pct: 100, label: "File siap didownload!" });
       setDownloadBlob(blob);
       setStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal membuat file export.");
       setStep("validated");
+      setProgress({ pct: 80, label: "" });
     }
   };
 
@@ -68,13 +110,12 @@ export default function App() {
     setError(null);
     setDownloadBlob(null);
     setNotification({ visible: false, totalEmpty: 0, totalInvalid: 0 });
+    setProgress({ pct: 0, label: "" });
     setStep("upload");
   };
 
   const handleModalContinue = () => {
-    if (result) {
-      void runExport(result.patients);
-    }
+    if (result) void runExport(result.patients);
   };
 
   const handleDownload = () => {
@@ -88,6 +129,7 @@ export default function App() {
     setError(null);
     setDownloadBlob(null);
     setNotification({ visible: false, totalEmpty: 0, totalInvalid: 0 });
+    setProgress({ pct: 0, label: "" });
     setStep("upload");
   };
 
@@ -98,7 +140,7 @@ export default function App() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
           <FileSpreadsheet className="text-blue-600 w-7 h-7 shrink-0" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
               Konversi Data Pasien
             </h1>
@@ -106,6 +148,15 @@ export default function App() {
               Upload Excel → Validasi → Download Template Berwarna
             </p>
           </div>
+          <a
+            href="/excel-converter-source.tar.gz"
+            download
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 rounded-lg px-3 py-1.5 transition-colors"
+            title="Download source code"
+          >
+            <Code className="w-3.5 h-3.5" />
+            Source Code
+          </a>
         </div>
       </header>
 
@@ -137,11 +188,8 @@ export default function App() {
             </div>
           )}
 
-          {isProcessing && (
-            <div className="mt-4 flex items-center gap-2 text-blue-600 text-sm font-medium">
-              <span className="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full" />
-              {step === "processing" ? "Membaca dan memvalidasi data..." : "Membuat file export..."}
-            </div>
+          {isProcessing && progress.pct > 0 && (
+            <ProgressBar pct={progress.pct} label={progress.label} />
           )}
         </section>
 
@@ -175,10 +223,13 @@ export default function App() {
 
         {step === "done" && downloadBlob && (
           <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-base font-semibold text-gray-800 mb-4">
+            <h2 className="text-base font-semibold text-gray-800 mb-1">
               4. Download Hasil
             </h2>
-            <div className="flex flex-col sm:flex-row gap-3">
+            {progress.pct === 100 && (
+              <ProgressBar pct={100} label={progress.label} />
+            )}
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <button
                 onClick={handleDownload}
                 className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm"

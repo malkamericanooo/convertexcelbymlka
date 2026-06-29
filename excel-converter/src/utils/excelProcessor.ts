@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import { PatientData, ValidationResult, ColumnValidation, RowValidation, ProcessResult } from "../types";
 import { validateNIK, validateTanggalLahir, validateIMT, calculateIMT, isEmptyValue } from "./validators";
 
@@ -257,15 +258,51 @@ export async function processFile(file: File): Promise<ProcessResult> {
   return { patients, validation };
 }
 
+export async function injectExtLst(templateBuffer: ArrayBuffer, outputBuffer: ArrayBuffer): Promise<ArrayBuffer> {
+  try {
+    const templateZip = await JSZip.loadAsync(templateBuffer);
+    const outputZip = await JSZip.loadAsync(outputBuffer);
+
+    const sheetFiles = ["xl/worksheets/sheet1.xml", "xl/worksheets/sheet2.xml"];
+    for (const sheetFile of sheetFiles) {
+      const templateEntry = templateZip.file(sheetFile);
+      const outputEntry = outputZip.file(sheetFile);
+      if (!templateEntry || !outputEntry) continue;
+
+      const templateXml = await templateEntry.async("string");
+      const outputXml = await outputEntry.async("string");
+
+      const extLstMatch = templateXml.match(/<extLst>[\s\S]*<\/extLst>/);
+      if (!extLstMatch) continue;
+
+      const extLst = extLstMatch[0];
+
+      let newXml: string;
+      if (outputXml.includes("<extLst>")) {
+        newXml = outputXml.replace(/<extLst>[\s\S]*<\/extLst>/, extLst);
+      } else {
+        newXml = outputXml.replace("</worksheet>", extLst + "</worksheet>");
+      }
+
+      outputZip.file(sheetFile, newXml);
+    }
+
+    return outputZip.generateAsync({ type: "arraybuffer", compression: "DEFLATE", compressionOptions: { level: 6 } });
+  } catch {
+    return outputBuffer;
+  }
+}
+
 export async function exportToTemplate(patients: PatientData[]): Promise<Blob> {
   let workbook: ExcelJS.Workbook;
+  let templateBuffer: ArrayBuffer | null = null;
 
   try {
     const response = await fetch("/template_kosong.xlsx");
     if (!response.ok) throw new Error("Template tidak ditemukan");
-    const arrayBuffer = await response.arrayBuffer();
+    templateBuffer = await response.arrayBuffer();
     workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(arrayBuffer);
+    await workbook.xlsx.load(templateBuffer);
   } catch {
     workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet("Data Pasien");
@@ -292,17 +329,14 @@ export async function exportToTemplate(patients: PatientData[]): Promise<Blob> {
     if (found) break;
   }
 
-  // Find first empty (data) row — skip merged header text rows only, stop at first null/empty
   let startRow = templateHeaderRow >= 0 ? templateHeaderRow + 1 : 6;
   const nikCol = templateNikCol > 0 ? templateNikCol : 3;
   const scanEnd = startRow + 20;
   for (let r = startRow; r <= scanEnd; r++) {
     const nikCell = worksheet.getRow(r).getCell(nikCol).value;
     if (nikCell != null && isHeaderText(nikCell)) {
-      // This row is still a merged header — skip it
       startRow = r + 1;
     } else {
-      // Either null (empty data row) or actual data — write here
       startRow = r;
       break;
     }
@@ -324,8 +358,16 @@ export async function exportToTemplate(patients: PatientData[]): Promise<Blob> {
     row.commit();
   }
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  return new Blob([buffer], {
+  const excelBuffer = await workbook.xlsx.writeBuffer();
+
+  let finalBuffer: ArrayBuffer;
+  if (templateBuffer) {
+    finalBuffer = await injectExtLst(templateBuffer, excelBuffer as ArrayBuffer);
+  } else {
+    finalBuffer = excelBuffer as ArrayBuffer;
+  }
+
+  return new Blob([finalBuffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
 }

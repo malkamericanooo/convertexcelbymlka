@@ -7,8 +7,9 @@ const validPatient: PatientData = {
   Nama: "Budi Santoso",
   TanggalLahir: "01/01/1990",
   IMT: "22.5",
-  AlamatLengkap: "Jl. Merdeka No. 1, Jakarta",
+  Alamat: "Jl. Merdeka No. 1, Jakarta",
   Telepon: "08123456789",
+  rawValues: [],
 };
 
 describe("validatePatients", () => {
@@ -63,7 +64,7 @@ describe("validatePatients", () => {
   it("detects empty Nama", () => {
     const patient: PatientData = { ...validPatient, Nama: "" };
     const result = validatePatients([patient]);
-    const col = result.columnValidations.find((c) => c.column === "Nama");
+    const col = result.columnValidations.find((c) => c.column === "Nama Pasien");
     expect(col?.emptyCount).toBe(1);
     expect(col?.status).toBe("empty");
   });
@@ -78,7 +79,7 @@ describe("validatePatients", () => {
   it("marks column status as empty when only empty cells", () => {
     const patient: PatientData = { ...validPatient, Telepon: "" };
     const result = validatePatients([patient]);
-    const col = result.columnValidations.find((c) => c.column === "Telepon");
+    const col = result.columnValidations.find((c) => c.column === "No. Telepon");
     expect(col?.status).toBe("empty");
   });
 
