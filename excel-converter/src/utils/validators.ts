@@ -2,7 +2,7 @@ import { isValid, parse } from "date-fns";
 
 export function validateNIK(value: string): boolean {
   if (!value || typeof value !== "string") return false;
-  const clean = value.trim().replace(/\s/g, "");
+  const clean = value.trim();
   return /^\d{16}$/.test(clean);
 }
 

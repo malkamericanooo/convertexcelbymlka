@@ -368,6 +368,9 @@ export async function exportToTemplate(patients: PatientData[]): Promise<Blob> {
         } else {
           cell.value = raw as ExcelJS.CellValue;
         }
+      } else {
+        // Hapus nilai bawaan template (seperti "Tidak") jika input aslinya memang kosong
+        cell.value = null;
       }
     }
 

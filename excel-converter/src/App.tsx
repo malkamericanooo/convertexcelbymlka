@@ -147,7 +147,7 @@ export default function App() {
           <FileSpreadsheet className="text-blue-600 w-7 h-7 shrink-0" />
           <div className="flex-1">
             <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
-              Konversi Data Pasien
+              Excel Converter Malka
             </h1>
             <p className="text-xs text-gray-500 hidden sm:block">
               Upload Excel → Validasi → Download Template Berwarna

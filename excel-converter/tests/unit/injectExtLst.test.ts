@@ -28,7 +28,7 @@ describe("injectExtLst", () => {
     const xml = await zip.file("xl/worksheets/sheet1.xml")!.async("string");
     expect(xml).toContain("<extLst>");
     expect(xml).toContain("x14:dataValidations");
-    expect(xml).toContain("G6:G428");
+    expect(xml).toContain("G6:G10000");
   });
 
   it("replaces existing extLst in output with template extLst", async () => {
@@ -87,6 +87,6 @@ describe("injectExtLst", () => {
 
     const zip = await JSZip.loadAsync(result);
     const xml = await zip.file("xl/worksheets/sheet1.xml")!.async("string");
-    expect(xml).toContain("<xm:sqref>G6:G428</xm:sqref>");
+    expect(xml).toContain("<xm:sqref>G6:G10000</xm:sqref>");
   });
 });
