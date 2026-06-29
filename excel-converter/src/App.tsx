@@ -6,7 +6,7 @@ import { ValidationTable } from "./components/ValidationTable";
 import { NotificationModal } from "./components/NotificationModal";
 import { readExcelFile, validatePatients, exportToTemplate } from "./utils/excelProcessor";
 import { PatientData, ProcessResult, AppStep, NotificationState } from "./types";
-import { FileSpreadsheet, Download, RefreshCw, Code } from "lucide-react";
+import { FileSpreadsheet, Download, RefreshCw } from "lucide-react";
 
 interface ProgressState {
   pct: number;
@@ -120,7 +120,12 @@ export default function App() {
 
   const handleDownload = () => {
     if (!downloadBlob) return;
-    saveAs(downloadBlob, "HASIL_REKAP_WARNA.xlsx");
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, "0");
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const yyyy = now.getFullYear();
+    const filename = `REKAP_PASIEN_PUSKESMAS_${dd}${mm}${yyyy}.xlsx`;
+    saveAs(downloadBlob, filename);
   };
 
   const handleReset = () => {
@@ -148,15 +153,6 @@ export default function App() {
               Upload Excel → Validasi → Download Template Berwarna
             </p>
           </div>
-          <a
-            href="/excel-converter-source.tar.gz"
-            download
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 border border-gray-200 hover:border-blue-300 rounded-lg px-3 py-1.5 transition-colors"
-            title="Download source code"
-          >
-            <Code className="w-3.5 h-3.5" />
-            Source Code
-          </a>
         </div>
       </header>
 
@@ -235,7 +231,7 @@ export default function App() {
                 className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm"
               >
                 <Download className="w-4 h-4" />
-                Download HASIL_REKAP_WARNA.xlsx
+                Download Rekap Pasien (.xlsx)
               </button>
               <button
                 onClick={handleReset}
