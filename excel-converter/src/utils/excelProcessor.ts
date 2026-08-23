@@ -3,6 +3,7 @@ import JSZip from "jszip";
 import { PatientData, ValidationResult, ColumnValidation, RowValidation, ProcessResult } from "../types";
 import { validateNIK, validateTanggalLahir, validateIMT, calculateIMT, isEmptyValue } from "./validators";
 import { sanitizeForExcel } from "./sanitizer";
+import { sortPatientsByBirthDate } from "./sortPatients";
 
 type RawValue = string | number | boolean | null;
 
@@ -184,7 +185,9 @@ export async function readExcelFile(file: File): Promise<PatientData[]> {
     throw new Error("Tidak ada data pasien ditemukan (file hanya memiliki header).");
   }
 
-  return patients;
+  // Urutkan tua → muda di sini, sekali saja, supaya validasi, pratinjau,
+  // dan file hasil convert semuanya memakai urutan yang sama.
+  return sortPatientsByBirthDate(patients);
 }
 
 export function validatePatients(patients: PatientData[]): ValidationResult {
