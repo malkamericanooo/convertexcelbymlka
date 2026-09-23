@@ -29,7 +29,7 @@ export function buildWhatsAppMessage(
   return `PEMBERITAHUAN HASIL SKRINING KESEHATAN
 PUSKESMAS MABU'UN
 
-Salam sehat Bapak/Ibu *${nama.toUpperCase()}*,
+Salam sehat Bapak/Ibu ${nama.toUpperCase()},
 
 Berdasarkan hasil skrining PTM yang telah Anda lakukan di Puskesmas Mabu'un:
 ${tensiStr ? `📊 Tekanan Darah: ${tensiStr} mmHg\n` : ""}${imtStr ? `⚖️ Indeks Massa Tubuh (IMT): ${imtStr}\n` : ""}
@@ -40,7 +40,7 @@ Demi menjaga kesehatan Anda tetap prima dan mencegah risiko komplikasi lebih lan
 
 🗓️ Jadwal Pendaftaran Puskesmas Mabu'un:
 •  Senin – Kamis : 08.00 – 11.00 WITA
-•  Jumat : 08.00 – 10.00 WITA
+•  Jumat : 08.00 – 10.00WITA
 •  Sabtu : 08.00 - 10.30 WITA
 
 Pesan ini dikirim otomatis oleh Layanan Skrining Kesehatan Terpadu Puskesmas Mabu'un. Mohon jaga kesehatan dan pola makan Anda. 🙏`;
@@ -69,19 +69,19 @@ export function detectPatientAnomalies(patients: PatientData[]): PatientAnomaly[
       severity = "high";
       category = "Hipertensi Derajat 2";
       reasons.push(
-        `Tekanan darah Anda (${sistol}/${diastol} mmHg) tergolong Hipertensi Derajat 2. Wajib kontrol rutin untuk pencegahan stroke dan penyakit jantung.`
+        `Tekanan darah Anda (${sistol}/${diastol} mmHg) tergolong Hipertensi Derajat 2. \nWajib kontrol rutin untuk pencegahan stroke dan penyakit jantung.`
       );
     } else if (sistol >= 140 || diastol >= 90) {
       severity = "high";
       category = "Hipertensi Derajat 1";
       reasons.push(
-        `Tekanan darah Anda (${sistol}/${diastol} mmHg) tergolong Hipertensi Derajat 1. Disarankan evaluasi dan pemeriksaan ulang.`
+        `Tekanan darah Anda (${sistol}/${diastol} mmHg) tergolong Hipertensi Derajat 1. \nDisarankan evaluasi dan pemeriksaan ulang.`
       );
     } else if (sistol >= 130 || diastol >= 85) {
       severity = "medium";
       category = "Pre-Hipertensi";
       reasons.push(
-        `Tekanan darah Anda (${sistol}/${diastol} mmHg) berada di batas tinggi (Pre-Hipertensi). Disarankan perbanyak aktivitas fisik dan kurangi konsumsi garam.`
+        `Tekanan darah Anda (${sistol}/${diastol} mmHg) berada di batas tinggi (Pre-Hipertensi). \nDisarankan perbanyak aktivitas fisik dan kurangi konsumsi garam.`
       );
     }
 
