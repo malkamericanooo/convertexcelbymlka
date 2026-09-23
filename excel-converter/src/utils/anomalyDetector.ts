@@ -38,7 +38,7 @@ Jadwal Pendaftaran Puskesmas Mabu'un:
 •  Jumat : 08.00 – 10.00WITA
 •  Sabtu : 08.00 - 10.30 WITA
 
-Pesan ini dikirim otomatis oleh Layanan Skrining Kesehatan Terpadu Puskesmas Mabu'un. Mohon jaga kesehatan dan pola makan Anda. 🙏`;
+Pesan ini dikirim otomatis oleh Layanan Skrining Penyakit Tidak Menular Puskesmas Mabu'un`;
 
 export function buildWhatsAppMessage(
   _nama?: string,
