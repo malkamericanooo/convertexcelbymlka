@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { PatientData, PatientAnomaly } from "../types";
-import { detectPatientAnomalies } from "../utils/anomalyDetector";
+import { detectPatientAnomalies, cleanPhoneNumber } from "../utils/anomalyDetector";
 import {
   MessageCircle,
   AlertTriangle,
@@ -14,6 +14,9 @@ import {
   PhoneCall,
   Activity,
   ArrowRight,
+  Edit2,
+  Settings,
+  RotateCcw,
 } from "lucide-react";
 
 interface AnomalyNotificationTabProps {
@@ -30,10 +33,42 @@ export function AnomalyNotificationTab({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSeverity, setFilterSeverity] = useState<"all" | "high" | "medium">("all");
 
+  // Custom phone number overrides per patient
+  const [phoneOverrides, setPhoneOverrides] = useState<Record<string, string>>({});
+  const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
+  const [tempPhoneInput, setTempPhoneInput] = useState("");
+
+  // Global override plugin (bebas kirim ke nomor uji coba tertentu)
+  const [useGlobalOverride, setUseGlobalOverride] = useState(false);
+  const [globalOverridePhone, setGlobalOverridePhone] = useState("08112294396");
+
   // Detect anomalies from patient list
-  const anomalies = useMemo(() => {
+  const baseAnomalies = useMemo(() => {
     return detectPatientAnomalies(patients);
   }, [patients]);
+
+  // Apply phone overrides or global override
+  const anomalies = useMemo(() => {
+    return baseAnomalies.map((item) => {
+      const activePhone = useGlobalOverride
+        ? globalOverridePhone
+        : phoneOverrides[item.id] !== undefined
+        ? phoneOverrides[item.id]
+        : item.patient.Telepon;
+
+      const formattedPhone = cleanPhoneNumber(activePhone);
+      const waUrl = formattedPhone
+        ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(item.waMessage)}`
+        : "";
+
+      return {
+        ...item,
+        formattedPhone,
+        waUrl,
+        displayPhone: activePhone,
+      };
+    });
+  }, [baseAnomalies, phoneOverrides, useGlobalOverride, globalOverridePhone]);
 
   // Filter based on search query and severity
   const filteredAnomalies = useMemo(() => {
@@ -41,7 +76,7 @@ export function AnomalyNotificationTab({
       const matchSearch =
         item.patient.Nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.patient.NIK.includes(searchQuery) ||
-        item.patient.Telepon.includes(searchQuery);
+        (item.displayPhone || "").includes(searchQuery);
 
       const matchSeverity =
         filterSeverity === "all" ? true : item.severity === filterSeverity;
@@ -54,15 +89,25 @@ export function AnomalyNotificationTab({
   const totalMedium = anomalies.filter((a) => a.severity === "medium").length;
   const totalSent = Object.values(sentMap).filter(Boolean).length;
 
-  const handleSendWhatsApp = (item: PatientAnomaly) => {
+  const handleSendWhatsApp = (item: PatientAnomaly & { displayPhone?: string }) => {
     if (!item.waUrl) {
-      alert("Nomor telepon pasien tidak valid atau kosong.");
+      alert("Nomor WhatsApp tidak valid atau kosong. Silakan isi nomor terlebih dahulu.");
       return;
     }
     // Mark as sent
     setSentMap((prev) => ({ ...prev, [item.id]: true }));
     // Open WhatsApp Web in new tab
     window.open(item.waUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const startEditPhone = (id: string, currentVal: string) => {
+    setEditingPhoneId(id);
+    setTempPhoneInput(currentVal);
+  };
+
+  const saveEditPhone = (id: string) => {
+    setPhoneOverrides((prev) => ({ ...prev, [id]: tempPhoneInput.trim() }));
+    setEditingPhoneId(null);
   };
 
   return (
@@ -75,7 +120,7 @@ export function AnomalyNotificationTab({
               Clinical Tele-Monitoring
             </span>
             <span className="bg-emerald-500/20 text-emerald-300 text-xs font-semibold px-2.5 py-1 rounded-full">
-              Skenario A (100% Free wa.me)
+              Format Resmi Kepala Puskesmas
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold mt-2">
@@ -93,6 +138,55 @@ export function AnomalyNotificationTab({
           <Sparkles className="w-4 h-4" />
           ✨ Muat Data Demo (Target: 08112294396)
         </button>
+      </div>
+
+      {/* Global Phone Plugin Box (Mode Bebas Input Nomor) */}
+      <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-sm bg-gradient-to-r from-indigo-50/40 to-blue-50/40">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+              <Settings className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-gray-900">
+                  Plugin Pengaturan Nomor Tujuan (Mode Bebas Input)
+                </h3>
+                <span className="text-[10px] bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">
+                  Fleksibel
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Aktifkan jika ingin mengarahkan semua tombol kirim ke nomor uji coba tertentu (misal: nomor HP Anda).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useGlobalOverride}
+                onChange={(e) => setUseGlobalOverride(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+              />
+              <span>Gunakan Nomor Pengujian:</span>
+            </label>
+
+            <input
+              type="text"
+              disabled={!useGlobalOverride}
+              value={globalOverridePhone}
+              onChange={(e) => setGlobalOverridePhone(e.target.value)}
+              placeholder="08112294396"
+              className={`px-3 py-1.5 border rounded-lg text-xs font-mono font-semibold transition-all ${
+                useGlobalOverride
+                  ? "border-indigo-400 bg-white text-indigo-900 shadow-sm focus:ring-2 focus:ring-indigo-500"
+                  : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+            />
+          </div>
+        </div>
       </div>
 
       {/* KPI Statistic Cards */}
@@ -206,7 +300,7 @@ export function AnomalyNotificationTab({
               <thead className="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-[11px] tracking-wider">
                 <tr>
                   <th className="py-3.5 px-4">Nama Pasien & NIK</th>
-                  <th className="py-3.5 px-4">No. WhatsApp</th>
+                  <th className="py-3.5 px-4">No. WhatsApp (Bebas Edit)</th>
                   <th className="py-3.5 px-4">Pengukuran Klinis</th>
                   <th className="py-3.5 px-4">Reason Why (Alasan Klinis)</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
@@ -217,6 +311,7 @@ export function AnomalyNotificationTab({
                 {filteredAnomalies.map((item) => {
                   const isSent = !!sentMap[item.id];
                   const isHigh = item.severity === "high";
+                  const isEditingThisPhone = editingPhoneId === item.id;
 
                   return (
                     <tr
@@ -235,15 +330,70 @@ export function AnomalyNotificationTab({
                         </div>
                       </td>
 
-                      {/* No. WhatsApp */}
+                      {/* No. WhatsApp (Editable) */}
                       <td className="py-3.5 px-4">
-                        {item.patient.Telepon ? (
-                          <div className="flex items-center gap-1.5 font-mono text-gray-700">
-                            <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>{item.patient.Telepon}</span>
+                        {isEditingThisPhone ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={tempPhoneInput}
+                              onChange={(e) => setTempPhoneInput(e.target.value)}
+                              placeholder="08112294396"
+                              className="px-2 py-1 border border-blue-400 rounded text-xs font-mono w-32 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => saveEditPhone(item.id)}
+                              className="px-2 py-1 bg-blue-600 text-white rounded text-[11px] font-semibold hover:bg-blue-700"
+                            >
+                              Simpan
+                            </button>
+                            <button
+                              onClick={() => setEditingPhoneId(null)}
+                              className="p-1 text-gray-400 hover:text-gray-600"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         ) : (
-                          <span className="text-gray-400 italic">Tidak ada no HP</span>
+                          <div className="flex items-center gap-2 group">
+                            {item.displayPhone ? (
+                              <div className="flex items-center gap-1.5 font-mono text-gray-700">
+                                <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>{item.displayPhone}</span>
+                              </div>
+                            ) : (
+                              <span className="text-rose-500 italic font-sans text-[11px]">
+                                Belum ada nomor
+                              </span>
+                            )}
+
+                            {!useGlobalOverride && (
+                              <button
+                                onClick={() =>
+                                  startEditPhone(item.id, item.displayPhone || "")
+                                }
+                                title="Edit nomor pasien ini"
+                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-600 transition-opacity"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                            )}
+
+                            {phoneOverrides[item.id] !== undefined && !useGlobalOverride && (
+                              <button
+                                onClick={() => {
+                                  const copy = { ...phoneOverrides };
+                                  delete copy[item.id];
+                                  setPhoneOverrides(copy);
+                                }}
+                                title="Reset ke nomor asli"
+                                className="p-1 text-gray-400 hover:text-rose-600"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -356,13 +506,18 @@ export function AnomalyNotificationTab({
               <span>Pratinjau Pesan WhatsApp Resmi Puskesmas Mabu'un</span>
             </div>
 
-            <div className="mt-3 text-xs text-gray-500">
-              Penerima: <strong className="text-gray-800">{selectedPreview.patient.Nama}</strong> ({selectedPreview.patient.Telepon || "Tanpa Nomor"})
+            <div className="mt-3 text-xs text-gray-600 flex items-center justify-between">
+              <div>
+                Penerima: <strong className="text-gray-900">{selectedPreview.patient.Nama}</strong>
+              </div>
+              <div className="font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">
+                Target: {selectedPreview.displayPhone || selectedPreview.formattedPhone || "Tanpa Nomor"}
+              </div>
             </div>
 
             {/* Simulated WhatsApp Chat Bubble */}
             <div className="mt-4 bg-[#EFEAE2] p-4 rounded-xl border border-gray-200 text-gray-900 text-xs font-sans leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto shadow-inner">
-              <div className="bg-white p-3 rounded-lg shadow-sm max-w-md">
+              <div className="bg-white p-3.5 rounded-lg shadow-sm max-w-md">
                 {selectedPreview.waMessage}
               </div>
             </div>

@@ -62,5 +62,6 @@ export interface PatientAnomaly {
   formattedPhone: string;
   waMessage: string;
   waUrl: string;
+  displayPhone?: string;
   isSent?: boolean;
 }

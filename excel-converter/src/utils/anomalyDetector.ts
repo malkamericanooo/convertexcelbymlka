@@ -16,7 +16,7 @@ export function cleanPhoneNumber(phone: string): string {
 }
 
 /**
- * Generate official, personalized Puskesmas Mabu'un reminder message
+ * Generate official, personalized Puskesmas Mabu'un reminder message (Revisi Kepala Puskesmas)
  */
 export function buildWhatsAppMessage(
   nama: string,
@@ -24,25 +24,26 @@ export function buildWhatsAppMessage(
   imtStr: string,
   reasons: string[]
 ): string {
-  const reasonBulletPoints = reasons.map((r) => `• ${r}`).join("\n");
+  const reasonBulletPoints = reasons.map((r) => `•  ${r}`).join("\n");
 
-  return `*PEMBERITAHUAN HASIL SKRINING KESEHATAN*
-*PUSKESMAS MABU'UN*
+  return `PEMBERITAHUAN HASIL SKRINING KESEHATAN
+PUSKESMAS MABU'UN
 
 Salam sehat Bapak/Ibu *${nama.toUpperCase()}*,
 
-Berdasarkan hasil pemeriksaan kesehatan skrining PTM yang telah Anda lakukan di Puskesmas Mabu'un:
-${tensiStr ? `📊 *Tekanan Darah:* ${tensiStr} mmHg\n` : ""}${imtStr ? `⚖️ *Indeks Massa Tubuh (IMT):* ${imtStr}\n` : ""}
-📌 *Catatan Petugas Kesehatan:*
+Berdasarkan hasil skrining PTM yang telah Anda lakukan di Puskesmas Mabu'un:
+${tensiStr ? `📊 Tekanan Darah: ${tensiStr} mmHg\n` : ""}${imtStr ? `⚖️ Indeks Massa Tubuh (IMT): ${imtStr}\n` : ""}
+📌 Catatan Petugas Kesehatan:
 ${reasonBulletPoints}
 
-Demi menjaga kesehatan Anda tetap prima dan mencegah risiko komplikasi lebih lanjut, kami menyarankan Bapak/Ibu untuk melakukan *pemeriksaan & konsultasi ulang* ke Poli PTM Puskesmas Mabu'un.
+Demi menjaga kesehatan Anda tetap prima dan mencegah risiko komplikasi lebih lanjut, kami menyarankan Bapak/Ibu untuk melakukan pemeriksaan & konsultasi ulang ke Puskesmas Mabu'un.
 
-🗓️ *Jadwal Pelayanan Puskesmas Mabu'un:*
-• Senin – Kamis : 08.00 – 12.00 WITA
-• Jumat         : 08.00 – 10.30 WITA
+🗓️ Jadwal Pendaftaran Puskesmas Mabu'un:
+•  Senin – Kamis : 08.00 – 11.00 WITA
+•  Jumat : 08.00 – 10.00 WITA
+•  Sabtu : 08.00 - 10.30 WITA
 
-_Pesan ini dikirim otomatis oleh Layanan Skrining Kesehatan Terpadu Puskesmas Mabu'un. Mohon jaga kesehatan dan pola makan Anda._ 🙏`;
+Pesan ini dikirim otomatis oleh Layanan Skrining Kesehatan Terpadu Puskesmas Mabu'un. Mohon jaga kesehatan dan pola makan Anda. 🙏`;
 }
 
 /**
