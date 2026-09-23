@@ -5,6 +5,8 @@ export interface PatientData {
   IMT: string;
   Alamat: string;
   Telepon: string;
+  Sistol?: string;
+  Diastol?: string;
   rawValues: (string | number | boolean | null)[];
 }
 
@@ -44,4 +46,21 @@ export interface NotificationState {
   visible: boolean;
   totalEmpty: number;
   totalInvalid: number;
+}
+
+export type AnomalySeverity = "high" | "medium" | "normal";
+
+export interface PatientAnomaly {
+  id: string;
+  patient: PatientData;
+  severity: AnomalySeverity;
+  category: string;
+  tensiStr: string;
+  imtVal: number | null;
+  reasons: string[];
+  recommendedAction: string;
+  formattedPhone: string;
+  waMessage: string;
+  waUrl: string;
+  isSent?: boolean;
 }

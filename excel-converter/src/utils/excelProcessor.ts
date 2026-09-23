@@ -56,6 +56,8 @@ interface ColMap {
   tinggiBadan: number;
   beratBadan: number;
   imtDirect: number;
+  sistol: number;
+  diastol: number;
   totalCols: number;
 }
 
@@ -65,10 +67,12 @@ function buildColMap(headerRow: string[]): ColMap {
     nama: findColByKeyword(headerRow, "NAMA PASIEN*", "NAMA PASIEN", "NAMA"),
     tanggalLahir: findColByKeyword(headerRow, "TANGGAL LAHIR *", "TANGGAL LAHIR*", "TANGGAL LAHIR", "TGL LAHIR"),
     alamat: findColByKeyword(headerRow, "ALAMAT*", "ALAMAT LENGKAP", "ALAMAT"),
-    telepon: findColByKeyword(headerRow, "NO.TELP/HP", "TELEPON", "NO TELEPON", "TELP", "HP"),
+    telepon: findColByKeyword(headerRow, "NO.TELP/HP", "TELEPON", "NO TELEPON", "TELP", "HP", "NO HP"),
     tinggiBadan: findColByKeyword(headerRow, "TINGGI BADAN(CM)", "TINGGI BADAN", "TINGGI"),
     beratBadan: findColByKeyword(headerRow, "BERAT BADAN (KG)", "BERAT BADAN", "BERAT"),
     imtDirect: findColByKeyword(headerRow, "IMT"),
+    sistol: findColByKeyword(headerRow, "SISTOL", "SISTOLE", "TD SISTOL"),
+    diastol: findColByKeyword(headerRow, "DIASTOL", "DIASTOLE", "TD DIASTOL"),
     totalCols: headerRow.length,
   };
 }
@@ -177,6 +181,8 @@ export async function readExcelFile(file: File): Promise<PatientData[]> {
       IMT: imtStr,
       Alamat: cols.alamat >= 0 ? getStr(cols.alamat) : "",
       Telepon: cols.telepon >= 0 ? getStr(cols.telepon) : "",
+      Sistol: cols.sistol >= 0 ? getStr(cols.sistol) : "",
+      Diastol: cols.diastol >= 0 ? getStr(cols.diastol) : "",
       rawValues,
     });
   }
