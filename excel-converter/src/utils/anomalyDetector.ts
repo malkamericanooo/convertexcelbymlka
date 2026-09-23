@@ -77,8 +77,8 @@ export function detectPatientAnomalies(patients: PatientData[]): PatientAnomaly[
         `Tekanan darah Anda (${sistol}/${diastol} mmHg) tergolong Hipertensi Derajat 1. Disarankan evaluasi dan pemeriksaan ulang.`
       );
     } else if (sistol >= 130 || diastol >= 85) {
-      if (severity !== "high") severity = "medium";
-      if (category === "Normal") category = "Pre-Hipertensi";
+      severity = "medium";
+      category = "Pre-Hipertensi";
       reasons.push(
         `Tekanan darah Anda (${sistol}/${diastol} mmHg) berada di batas tinggi (Pre-Hipertensi). Disarankan perbanyak aktivitas fisik dan kurangi konsumsi garam.`
       );
