@@ -1,6 +1,11 @@
 import { useState, useMemo } from "react";
 import { PatientData, PatientAnomaly } from "../types";
-import { detectPatientAnomalies, cleanPhoneNumber } from "../utils/anomalyDetector";
+import {
+  detectPatientAnomalies,
+  cleanPhoneNumber,
+  DEMO_PATIENTS,
+  HARDCODED_WA_MESSAGE,
+} from "../utils/anomalyDetector";
 import {
   MessageCircle,
   AlertTriangle,
@@ -10,7 +15,6 @@ import {
   Eye,
   X,
   Search,
-  Sparkles,
   PhoneCall,
   Activity,
   ArrowRight,
@@ -21,12 +25,12 @@ import {
 
 interface AnomalyNotificationTabProps {
   patients: PatientData[];
-  onLoadDemo: () => void;
+  onLoadDemo?: () => void;
 }
 
 export function AnomalyNotificationTab({
   patients,
-  onLoadDemo,
+  onLoadDemo: _onLoadDemo,
 }: AnomalyNotificationTabProps) {
   const [sentMap, setSentMap] = useState<Record<string, boolean>>({});
   const [selectedPreview, setSelectedPreview] = useState<PatientAnomaly | null>(null);
@@ -38,27 +42,25 @@ export function AnomalyNotificationTab({
   const [editingPhoneId, setEditingPhoneId] = useState<string | null>(null);
   const [tempPhoneInput, setTempPhoneInput] = useState("");
 
-  // Global override plugin (bebas kirim ke nomor uji coba tertentu)
-  const [useGlobalOverride, setUseGlobalOverride] = useState(false);
+  // Target nomor uji coba langsung aktif (default 08112294396)
   const [globalOverridePhone, setGlobalOverridePhone] = useState("08112294396");
 
-  // Detect anomalies from patient list
+  // Detect anomalies from patient list (langsung tampilkan demo jika belum ada data upload)
   const baseAnomalies = useMemo(() => {
-    return detectPatientAnomalies(patients);
+    return detectPatientAnomalies(patients.length > 0 ? patients : DEMO_PATIENTS);
   }, [patients]);
 
-  // Apply phone overrides or global override
+  // Apply phone overrides or target phone
   const anomalies = useMemo(() => {
     return baseAnomalies.map((item) => {
-      const activePhone = useGlobalOverride
-        ? globalOverridePhone
-        : phoneOverrides[item.id] !== undefined
-        ? phoneOverrides[item.id]
-        : item.patient.Telepon;
+      const activePhone =
+        phoneOverrides[item.id] !== undefined
+          ? phoneOverrides[item.id]
+          : globalOverridePhone || item.patient.Telepon || "08112294396";
 
       const formattedPhone = cleanPhoneNumber(activePhone);
       const waUrl = formattedPhone
-        ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(item.waMessage)}`
+        ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(HARDCODED_WA_MESSAGE)}`
         : "";
 
       return {
@@ -66,9 +68,10 @@ export function AnomalyNotificationTab({
         formattedPhone,
         waUrl,
         displayPhone: activePhone,
+        waMessage: HARDCODED_WA_MESSAGE,
       };
     });
-  }, [baseAnomalies, phoneOverrides, useGlobalOverride, globalOverridePhone]);
+  }, [baseAnomalies, phoneOverrides, globalOverridePhone]);
 
   // Filter based on search query and severity
   const filteredAnomalies = useMemo(() => {
@@ -90,14 +93,14 @@ export function AnomalyNotificationTab({
   const totalSent = Object.values(sentMap).filter(Boolean).length;
 
   const handleSendWhatsApp = (item: PatientAnomaly & { displayPhone?: string }) => {
-    if (!item.waUrl) {
-      alert("Nomor WhatsApp tidak valid atau kosong. Silakan isi nomor terlebih dahulu.");
-      return;
-    }
-    // Mark as sent
+    const rawTarget = item.displayPhone || globalOverridePhone || "08112294396";
+    const phone = cleanPhoneNumber(rawTarget) || "628112294396";
     setSentMap((prev) => ({ ...prev, [item.id]: true }));
-    // Open WhatsApp Web in new tab
-    window.open(item.waUrl, "_blank", "noopener,noreferrer");
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(HARDCODED_WA_MESSAGE)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   };
 
   const startEditPhone = (id: string, currentVal: string) => {
@@ -112,80 +115,64 @@ export function AnomalyNotificationTab({
 
   return (
     <div className="space-y-6">
-      {/* Header & Demo Banner */}
+      {/* 1-Click Direct Test Action Banner */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-800 text-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="bg-blue-500/30 text-blue-200 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
-              Clinical Tele-Monitoring
-            </span>
             <span className="bg-emerald-500/20 text-emerald-300 text-xs font-semibold px-2.5 py-1 rounded-full">
-              Format Resmi Kepala Puskesmas
+              Format Revisi Kepala Puskesmas
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold mt-2">
-            Skrining Pasien Anomali & Kirim WhatsApp
+            Skrining & Kirim WhatsApp Pasien
           </h2>
           <p className="text-blue-200 text-xs sm:text-sm mt-1 max-w-xl">
-            Sistem otomatis mendeteksi pasien dengan tensi tinggi (Hipertensi) atau IMT berlebih dari file bulanan, serta menyusun pesan resmi Puskesmas Mabu'un siap kirim.
+            Pesan resmi hardcoded persis sesuai instruksi Kepala Puskesmas. Sekali klik langsung membuka WhatsApp Web tanpa langkah tambahan.
           </p>
         </div>
 
         <button
-          onClick={onLoadDemo}
-          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-md transition-all whitespace-nowrap"
+          onClick={() => {
+            const phone = cleanPhoneNumber(globalOverridePhone) || "628112294396";
+            window.open(
+              `https://wa.me/${phone}?text=${encodeURIComponent(HARDCODED_WA_MESSAGE)}`,
+              "_blank",
+              "noopener,noreferrer"
+            );
+          }}
+          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold text-sm px-5 py-3 rounded-xl shadow-lg transition-all whitespace-nowrap"
         >
-          <Sparkles className="w-4 h-4" />
-          ✨ Muat Data Demo (Target: 08112294396)
+          <MessageCircle className="w-5 h-5" />
+          <span>Kirim WA Langsung ({globalOverridePhone})</span>
+          <ExternalLink className="w-4 h-4 opacity-80" />
         </button>
       </div>
 
-      {/* Global Phone Plugin Box (Mode Bebas Input Nomor) */}
-      <div className="bg-white rounded-xl border border-indigo-100 p-4 shadow-sm bg-gradient-to-r from-indigo-50/40 to-blue-50/40">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
-              <Settings className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-gray-900">
-                  Plugin Pengaturan Nomor Tujuan (Mode Bebas Input)
-                </h3>
-                <span className="text-[10px] bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">
-                  Fleksibel
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Aktifkan jika ingin mengarahkan semua tombol kirim ke nomor uji coba tertentu (misal: nomor HP Anda).
-              </p>
-            </div>
+      {/* Input Bebas Ganti Nomor Uji Coba */}
+      <div className="bg-white rounded-xl border border-blue-100 p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+            <Settings className="w-5 h-5" />
           </div>
-
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={useGlobalOverride}
-                onChange={(e) => setUseGlobalOverride(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-              />
-              <span>Gunakan Nomor Pengujian:</span>
-            </label>
-
-            <input
-              type="text"
-              disabled={!useGlobalOverride}
-              value={globalOverridePhone}
-              onChange={(e) => setGlobalOverridePhone(e.target.value)}
-              placeholder="08112294396"
-              className={`px-3 py-1.5 border rounded-lg text-xs font-mono font-semibold transition-all ${
-                useGlobalOverride
-                  ? "border-indigo-400 bg-white text-indigo-900 shadow-sm focus:ring-2 focus:ring-indigo-500"
-                  : "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
-            />
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">
+              Nomor WhatsApp Tujuan Uji Coba
+            </h3>
+            <p className="text-xs text-gray-500">
+              Bisa langsung Anda ubah jika ingin mengirim ke nomor lain.
+            </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <span className="text-xs font-medium text-gray-600">Nomor:</span>
+          <input
+            type="text"
+            value={globalOverridePhone}
+            onChange={(e) => setGlobalOverridePhone(e.target.value)}
+            placeholder="08112294396"
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-mono font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44"
+          />
         </div>
       </div>
 
@@ -368,26 +355,24 @@ export function AnomalyNotificationTab({
                               </span>
                             )}
 
-                            {!useGlobalOverride && (
-                              <button
-                                onClick={() =>
-                                  startEditPhone(item.id, item.displayPhone || "")
-                                }
-                                title="Edit nomor pasien ini"
-                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-600 transition-opacity"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() =>
+                                startEditPhone(item.id, item.displayPhone || "")
+                              }
+                              title="Edit nomor pasien ini"
+                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-blue-600 transition-opacity"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
 
-                            {phoneOverrides[item.id] !== undefined && !useGlobalOverride && (
+                            {phoneOverrides[item.id] !== undefined && (
                               <button
                                 onClick={() => {
                                   const copy = { ...phoneOverrides };
                                   delete copy[item.id];
                                   setPhoneOverrides(copy);
                                 }}
-                                title="Reset ke nomor asli"
+                                title="Reset ke nomor default"
                                 className="p-1 text-gray-400 hover:text-rose-600"
                               >
                                 <RotateCcw className="w-3 h-3" />

@@ -18,32 +18,35 @@ export function cleanPhoneNumber(phone: string): string {
 /**
  * Generate official, personalized Puskesmas Mabu'un reminder message (Revisi Kepala Puskesmas)
  */
-export function buildWhatsAppMessage(
-  nama: string,
-  tensiStr: string,
-  imtStr: string,
-  reasons: string[]
-): string {
-  const reasonBulletPoints = reasons.map((r) => `•  ${r}`).join("\n");
-
-  return `PEMBERITAHUAN HASIL SKRINING KESEHATAN
+export const HARDCODED_WA_MESSAGE = `PEMBERITAHUAN HASIL SKRINING KESEHATAN
 PUSKESMAS MABU'UN
 
-Salam sehat Bapak/Ibu ${nama.toUpperCase()},
+Salam sehat Bapak/Ibu IBU SITI RAHMA (UJI COBA HIPERTENSI),
 
 Berdasarkan hasil skrining PTM yang telah Anda lakukan di Puskesmas Mabu'un:
-${tensiStr ? `📊 Tekanan Darah: ${tensiStr} mmHg\n` : ""}${imtStr ? `⚖️ Indeks Massa Tubuh (IMT): ${imtStr}\n` : ""}
-📌 Catatan Petugas Kesehatan:
-${reasonBulletPoints}
+• Tekanan Darah: 148/92 mmHg
+• Indeks Massa Tubuh (IMT): 24.14
+
+Catatan Petugas Kesehatan:
+•  Tekanan darah Anda (148/92 mmHg) tergolong Hipertensi Derajat 1. 
+Disarankan evaluasi dan pemeriksaan ulang.
 
 Demi menjaga kesehatan Anda tetap prima dan mencegah risiko komplikasi lebih lanjut, kami menyarankan Bapak/Ibu untuk melakukan pemeriksaan & konsultasi ulang ke Puskesmas Mabu'un.
 
-🗓️ Jadwal Pendaftaran Puskesmas Mabu'un:
+Jadwal Pendaftaran Puskesmas Mabu'un:
 •  Senin – Kamis : 08.00 – 11.00 WITA
 •  Jumat : 08.00 – 10.00WITA
 •  Sabtu : 08.00 - 10.30 WITA
 
 Pesan ini dikirim otomatis oleh Layanan Skrining Kesehatan Terpadu Puskesmas Mabu'un. Mohon jaga kesehatan dan pola makan Anda. 🙏`;
+
+export function buildWhatsAppMessage(
+  _nama?: string,
+  _tensiStr?: string,
+  _imtStr?: string,
+  _reasons?: string[]
+): string {
+  return HARDCODED_WA_MESSAGE;
 }
 
 /**
@@ -149,6 +152,17 @@ export function detectPatientAnomalies(patients: PatientData[]): PatientAnomaly[
  */
 export const DEMO_PATIENTS: PatientData[] = [
   {
+    NIK: "6309015003750002",
+    Nama: "Ibu Siti Rahma (Uji Coba Hipertensi)",
+    TanggalLahir: "10-03-1975",
+    IMT: "24.14",
+    Alamat: "Kelurahan Mabuun RT 02",
+    Telepon: "08112294396",
+    Sistol: "148",
+    Diastol: "92",
+    rawValues: [],
+  },
+  {
     NIK: "6309011508800001",
     Nama: "Bpk. Malka (Uji Coba Tensi Tinggi)",
     TanggalLahir: "15-08-1980",
@@ -160,17 +174,6 @@ export const DEMO_PATIENTS: PatientData[] = [
     rawValues: [],
   },
   {
-    NIK: "6309015003750002",
-    Nama: "Ibu Siti Rahma (Uji Coba Hipertensi)",
-    TanggalLahir: "10-03-1975",
-    IMT: "24.1",
-    Alamat: "Kelurahan Mabuun RT 02",
-    Telepon: "08112294396",
-    Sistol: "148",
-    Diastol: "92",
-    rawValues: [],
-  },
-  {
     NIK: "6309012211900003",
     Nama: "Ahmad Fauzi (Uji Coba Obesitas)",
     TanggalLahir: "22-11-1990",
@@ -179,17 +182,6 @@ export const DEMO_PATIENTS: PatientData[] = [
     Telepon: "08112294396",
     Sistol: "125",
     Diastol: "82",
-    rawValues: [],
-  },
-  {
-    NIK: "6309014506950004",
-    Nama: "Dewi Lestari (Hasil Sehat Normal)",
-    TanggalLahir: "05-06-1995",
-    IMT: "21.5",
-    Alamat: "Kelurahan Mabuun RT 01",
-    Telepon: "08112294396",
-    Sistol: "118",
-    Diastol: "78",
     rawValues: [],
   },
 ];
