@@ -225,6 +225,16 @@ export default function App() {
         </div>
       </header>
 
+      {/* Ketentuan & kebijakan data: selalu terlihat sebelum memakai alat */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4">
+        <div role="note" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+          <strong>Sebelum memakai:</strong> alat ini khusus petugas kesehatan dan kader yang berwenang. Kami (pengembang){' '}
+          <b>tidak menyimpan, tidak melihat, dan tidak memakai data warga</b>: file diproses di browser Anda dan tidak dikirim
+          ke server. Penanggung jawab data adalah <b>instansi kesehatan</b> pengguna. Hasil otomatis bisa keliru, wajib diperiksa.{' '}
+          <a href="/kebijakan.html" className="font-semibold underline underline-offset-2">Baca ketentuan &amp; kebijakan data</a>
+        </div>
+      </div>
+
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
@@ -362,6 +372,9 @@ export default function App() {
             onLoadDemo={handleLoadDemo}
           />
         )}
+        <p className="text-center text-xs text-gray-400 pb-2">
+          <a href="/kebijakan.html" className="underline underline-offset-2">Ketentuan &amp; kebijakan data</a> · Penanggung jawab data: instansi kesehatan pengguna
+        </p>
       </main>
 
       <NotificationModal
